@@ -1,6 +1,6 @@
 # VaporBets (WIP)
 
-VaporBets is a mobile app for simulated sports betting using the virtual currency Vaporcredits. Users will be able to bet on live sports events with no real financial stakes.
+VaporBets is a mobile app for simulated sports-betting using the virtual currency Vaporcredits. Users will be able to bet on live sports events with no real financial stakes.
 
 ## Vaporcredits
 
@@ -23,3 +23,11 @@ Achievements are permanent sources of points that can only be awarded once, with
 | Rare               | +300           |
 | Epic               | +500           |
 | Legendary          | +1,000         |
+
+## Leaderboards
+
+Users will be able to see their rank in weekly regional, country, and worldwide leaderboards. The list can be sorted by points or VC balance.
+
+## User Profiles
+
+Each user will have a profile that displays sections for their best plays, achievements, and betting history.
