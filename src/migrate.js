@@ -3,6 +3,7 @@ import db from './config/db.js';
 const migrationFiles = [
   '20260818_create_enum_types.js',
   '20260818_create_users_table.js',
+  '20260820_add_auth_profile_fields.js',
   '20260818_create_locations_table.js',
   '20260818_create_wallets_table.js',
   '20260818_create_market_categories_table.js',
