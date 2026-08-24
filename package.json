@@ -12,7 +12,6 @@
     "migrate": "node --env-file=.env src/migrate.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.3",
     "express": "^5.2.1",
     "pg": "^8.23.0"
   }
