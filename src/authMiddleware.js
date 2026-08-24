@@ -1,32 +1,30 @@
-import { getUser } from './config/supabase.js';
+import { getSession } from './config/neonAuth.js';
 
 export async function requireAuth(req, res, next) {
-  //get HTTP auth header
-  const authorization = req.get('authorization');
-  //scheme = 'Bearer', accessToken = *the token*
-  const [scheme, accessToken] = authorization?.split(' ') || [];
+  const cookie = req.get('cookie');
 
-  if (scheme !== 'Bearer' || !accessToken) {
+  if (!cookie) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
   try {
-    const { id, email, email_confirmed_at: emailConfirmedAt } = await getUser(accessToken);
+    const { data } = await getSession(cookie);
+    const user = data?.user;
 
-    if (!id) {
+    if (!user?.id) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     req.user = {
-      id,
-      email,
-      emailConfirmedAt,
+      id: user.id,
+      email: user.email,
+      emailConfirmedAt: user.emailVerified,
     };
 
     //continue to next route
     return next();
   } 
   catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired access token' });
+    return res.status(401).json({ error: 'Invalid or expired session' });
   }
 }
