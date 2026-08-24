@@ -1,7 +1,7 @@
 import express from 'express';
 import db from '../config/db.js';
 import { requireAuth } from '../authMiddleware.js';
-import { getUser, refreshSession, signIn, signUp } from '../config/supabase.js';
+import { signIn, signOut, signUp } from '../config/neonAuth.js';
 
 const router = express.Router();
 
@@ -9,13 +9,10 @@ function isValidEmail(email) {
 	return typeof email === 'string' && /^\S+@\S+\.\S+$/.test(email);
 }
 
-function publicSession(session) {
-	return {
-		access_token: session?.access_token || null,
-		refresh_token: session?.refresh_token || null,
-		expires_in: session?.expires_in || null,
-		token_type: session?.token_type || null,
-	};
+function setAuthCookies(res, cookies) {
+	if (cookies.length) {
+		res.setHeader('set-cookie', cookies);
+	}
 }
 
 router.post('/register', async (req, res, next) => {
@@ -34,21 +31,21 @@ router.post('/register', async (req, res, next) => {
 			username: username.trim(),
 		});
 
-    //check if Supabase returned a user before adding to db
-		if (authResult.user) {
+	//check if a user was returned before inserting into db
+		if (authResult.data?.user) {
 			await db.query(
 				`INSERT INTO users (id, username, email, password_hash, is_premium, current_login_streak)
 				 VALUES ($1, $2, $3, NULL, FALSE, 0)`,
-				[authResult.user.id, username.trim(), email.trim().toLowerCase()],
+				[authResult.data.user.id, username.trim(), email.trim().toLowerCase()],
 			);
 		}
 
+		setAuthCookies(res, authResult.setCookies);
 		return res.status(201).json({
-			user: authResult.user ? { id: authResult.user.id, email: authResult.user.email } : null,
-			//gives access if Supabase returns a session
-      session: publicSession(authResult.session),
-			//true if Supabase did not return a session
-      emailVerificationRequired: !authResult.session,
+			user: authResult.data?.user || null,
+			session: authResult.data?.session || null,
+			//verification is required if no session was returned
+			emailVerificationRequired: !authResult.data?.session,
 		});
 	} 
   catch (error) {
@@ -71,13 +68,14 @@ router.post('/login', async (req, res, next) => {
 		});
 
     //blocks unverified users
-		if (!authResult.user?.email_confirmed_at) {
+		if (!authResult.data?.user?.emailVerified) {
 			return res.status(403).json({ error: 'Email verification is required' });
 		}
 
+		setAuthCookies(res, authResult.setCookies);
 		return res.json({
-			user: { id: authResult.user.id, email: authResult.user.email },
-			session: publicSession(authResult),
+			user: authResult.data.user,
+			session: authResult.data.session || null,
 		});
 	} 
   catch (error) {
@@ -88,22 +86,13 @@ router.post('/login', async (req, res, next) => {
 	}
 });
 
-//used by React Native app to refresh token
-router.post('/refresh', async (req, res, next) => {
-	const { refresh_token: refreshToken } = req.body || {};
-
-	if (typeof refreshToken !== 'string' || !refreshToken) {
-		return res.status(400).json({ error: 'Refresh token is required' });
-	}
-
+router.post('/logout', async (req, res, next) => {
 	try {
-    //send refresh token to Supabase
-		const session = await refreshSession(refreshToken);
-    //returns replacement token
-		return res.json({ session: publicSession(session) });
-	} 
-  catch (error) {
-		return res.status(401).json({ error: 'Invalid or expired refresh token' });
+		const result = await signOut(req.get('cookie'));
+		setAuthCookies(res, result.setCookies);
+		return res.status(204).send();
+	} catch (error) {
+		return next(error);
 	}
 });
 
