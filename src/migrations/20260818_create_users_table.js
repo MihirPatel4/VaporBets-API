@@ -6,11 +6,12 @@ export async function up() {
         id UUID PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         email VARCHAR(100) NOT NULL,
-        password_hash VARCHAR(50) NOT NULL,
-        is_premium BOOLEAN NOT NULL,
-        current_login_streak INTEGER NOT NULL,
+        password_hash VARCHAR(255),
+        is_premium BOOLEAN DEFAULT FALSE,
+        current_login_streak INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login_at TIMESTAMP,
+        email_verified_at TIMESTAMP,
         total_points INTEGER DEFAULT 0
     )
   `);
@@ -19,4 +20,3 @@ export async function up() {
 export async function down() {
   await db.query('DROP TABLE IF EXISTS users');
 }
-
