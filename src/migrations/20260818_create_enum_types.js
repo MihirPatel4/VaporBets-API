@@ -2,6 +2,8 @@ import db from '../config/db.js';
 
 export async function up() {
   await db.query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
     DO $$ BEGIN
       CREATE TYPE bet_status AS ENUM ('PENDING', 'WON', 'LOST', 'CANCELLED');
     EXCEPTION WHEN duplicate_object THEN NULL;
