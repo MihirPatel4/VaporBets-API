@@ -99,7 +99,7 @@ router.post('/logout', async (req, res, next) => {
 //gets user profile
 router.get('/me', requireAuth, async (req, res, next) => {
 	try {
-    //$1 ensures user ID is not inserted directly into SQL
+    //parameter value ensures user ID is not inserted directly into SQL
 		const { rows } = await db.query(
 			`SELECT id, username, email, is_premium, current_login_streak,
 							created_at, last_login_at, total_points
