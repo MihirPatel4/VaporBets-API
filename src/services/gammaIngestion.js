@@ -172,22 +172,24 @@ async function upsertMarket(market, eventId) {
     //every token becomes a row in market_outcomes
     await db.query(`
       INSERT INTO market_outcomes
-        (id, market_id, label, odds, probability, polymarket_token_id, polymarket_price, baseline_odds)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        (id, market_id, label, odds, probability, polymarket_token_id, polymarket_price,
+         baseline_probability, baseline_odds)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       ON CONFLICT (polymarket_token_id) DO UPDATE SET
         market_id = EXCLUDED.market_id, 
         label = EXCLUDED.label,
-        odds = EXCLUDED.odds, 
-        probability = EXCLUDED.probability,
-        polymarket_price = EXCLUDED.polymarket_price
+        polymarket_price = EXCLUDED.polymarket_price,
+        baseline_probability = EXCLUDED.baseline_probability,
+        baseline_odds = EXCLUDED.baseline_odds
     `, [
       outcomeId, 
       result.rows[0].id, 
       labels[index] || `Outcome ${index + 1}`, 
       odds, 
-      probability, 
-      tokenIds[index], 
-      probability, 
+      probability,
+      tokenIds[index],
+      probability,
+      probability,
       odds
     ]);
     outcomeRows.push(tokenIds[index]);
