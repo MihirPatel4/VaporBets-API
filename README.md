@@ -2,6 +2,11 @@
 
 VaporBets is a mobile app for simulated sports-betting using the virtual currency Vaporcredits. Users will be able to bet on live sports events with no real financial stakes.
 
+## Market data
+
+The API imports active Polymarket sports events using Gamma API every 60 seconds afterward. Their markets and outcome token IDs are stored as the Polymarket baseline. User bets on this app will affect the final prices and market odds.
+The CLOB market WebSocket updates best bid, best ask, last trade price, probability, and displayed odds in real time.
+
 ## Vaporcredits
 
 Vaporcredits (VC) are the betting currency for this app. User accounts will receive 10,000 VC every week. VC cannot be exchanged for real-world currency.
