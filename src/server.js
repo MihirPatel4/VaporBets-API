@@ -1,5 +1,7 @@
 import express from 'express';
 import authRoutes from './routes/authRoutes.js';
+import { syncSportsMarkets } from './services/gammaIngestion.js';
+import { startClobWebSocket, updateClobSubscription } from './services/clobWebSocket.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,3 +21,18 @@ app.use((error, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
 });
+
+async function refreshSportsMarkets() {
+  try {
+    const tokenIds = await syncSportsMarkets();
+    updateClobSubscription(tokenIds);
+    console.log(`Synced ${tokenIds.length} sports outcome tokens from Gamma`);
+  } 
+  catch (error) {
+    console.error('Sports market sync failed:', error);
+  }
+}
+
+startClobWebSocket();
+await refreshSportsMarkets();
+setInterval(refreshSportsMarkets, 60000);
