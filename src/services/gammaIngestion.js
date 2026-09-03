@@ -1,16 +1,8 @@
-import crypto from 'node:crypto';
 import db from '../config/db.js';
 
 const GAMMA_API_URL = process.env.GAMMA_API_URL || 'https://gamma-api.polymarket.com';
 const SPORTS_TAG_ID = process.env.POLYMARKET_SPORTS_TAG_ID || '1';
 const PAGE_SIZE = 100;
-
-//makes deterministic identifiers from source (market/event/category/outcome) and id
-function uuidFor(source, id) {
-  return crypto.createHash('sha1').update(`${source}:${id}`).digest('hex').replace(
-    /^(........)(....)(....)(....)(............)$/, '$1-$2-$3-$4-$5',
-  );
-}
 
 //prevent invalid Date objects
 function asDate(value) {
@@ -78,22 +70,32 @@ async function fetchSportsEvents() {
 
 //add the sports category to db if one doesn't exist
 async function ensureSportsCategory() {
+  const existing = await db.query(
+    `SELECT id FROM market_categories WHERE name = 'Sports' LIMIT 1`,
+  );
+
+  if (existing.rows[0]) {
+    await db.query(
+      `UPDATE market_categories SET is_active = TRUE WHERE id = $1`,
+      [existing.rows[0].id],
+    );
+    return existing.rows[0].id;
+  }
+
   const { rows } = await db.query(`
-    INSERT INTO market_categories (id, name)
-    VALUES ($1, 'Sports')
-    ON CONFLICT (id) DO UPDATE SET is_active = TRUE
+    INSERT INTO market_categories (name)
+    VALUES ('Sports')
     RETURNING id
-  `, [uuidFor('category', 'sports')]);
+  `);
   return rows[0].id;
 }
 
 //insert or update event pulled from Gamma
 async function upsertEvent(event, categoryId) {
-  const eventId = uuidFor('event', event.id);
   const result = await db.query(`
     INSERT INTO events
-      (id, polymarket_id, category_id, title, description, slug, game_id, start_time, status, source_updated_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+      (polymarket_id, category_id, title, description, slug, game_id, start_time, status, source_updated_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
     ON CONFLICT (polymarket_id) DO UPDATE SET
       category_id = EXCLUDED.category_id, 
       title = EXCLUDED.title,
@@ -106,7 +108,6 @@ async function upsertEvent(event, categoryId) {
       updated_at = CURRENT_TIMESTAMP
     RETURNING id
   `, [
-    eventId, 
     String(event.id), 
     categoryId, 
     event.title || event.slug || `Game ${event.id}`,
@@ -123,7 +124,6 @@ async function upsertEvent(event, categoryId) {
 
 //insert or update market pulled from Gamma
 async function upsertMarket(market, eventId) {
-  const marketId = uuidFor('market', market.id);
   const tokenIds = JSON.parse(market.clobTokenIds);
   const labels = JSON.parse(market.outcomes);
   const prices = JSON.parse(market.outcomePrices);
@@ -131,8 +131,8 @@ async function upsertMarket(market, eventId) {
 
   const result = await db.query(`
     INSERT INTO markets
-      (id, polymarket_id, event_id, question, slug, condition_id, type, status, closes_at, source_updated_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, 'SINGLE', $7, $8, $9, CURRENT_TIMESTAMP)
+      (polymarket_id, event_id, question, slug, condition_id, type, status, closes_at, source_updated_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5, 'SINGLE', $6, $7, $8, CURRENT_TIMESTAMP)
     ON CONFLICT (polymarket_id) DO UPDATE SET
       event_id = EXCLUDED.event_id, 
       question = EXCLUDED.question,
@@ -144,7 +144,6 @@ async function upsertMarket(market, eventId) {
       updated_at = CURRENT_TIMESTAMP
     RETURNING id
   `, [
-    marketId, 
     String(market.id), 
     eventId, 
     market.question || market.slug || `Market ${market.id}`,
@@ -167,14 +166,12 @@ async function upsertMarket(market, eventId) {
     //probability forced between 0 and 1 in case price is somehow outside the range
     const probability = Math.min(Math.max(price, 0), 1);
     const odds = 1 / probability;
-    const outcomeId = uuidFor('outcome', tokenIds[index]);
-
     //every token becomes a row in market_outcomes
     await db.query(`
       INSERT INTO market_outcomes
-        (id, market_id, label, odds, probability, polymarket_token_id, polymarket_price,
-         baseline_probability, baseline_odds)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        (market_id, label, odds, probability, polymarket_token_id, polymarket_price,
+        baseline_probability, baseline_odds)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (polymarket_token_id) DO UPDATE SET
         market_id = EXCLUDED.market_id, 
         label = EXCLUDED.label,
@@ -182,7 +179,6 @@ async function upsertMarket(market, eventId) {
         baseline_probability = EXCLUDED.baseline_probability,
         baseline_odds = EXCLUDED.baseline_odds
     `, [
-      outcomeId, 
       result.rows[0].id, 
       labels[index] || `Outcome ${index + 1}`, 
       odds, 
