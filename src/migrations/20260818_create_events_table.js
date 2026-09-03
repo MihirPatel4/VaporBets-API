@@ -3,7 +3,7 @@ import db from '../config/db.js';
 export async function up() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS events (
-      id UUID PRIMARY KEY,
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       polymarket_id VARCHAR(100) UNIQUE NOT NULL,
       category_id UUID NOT NULL REFERENCES market_categories(id),
       title VARCHAR(200) NOT NULL,

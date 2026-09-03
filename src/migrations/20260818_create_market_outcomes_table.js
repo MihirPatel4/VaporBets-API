@@ -3,7 +3,7 @@ import db from '../config/db.js';
 export async function up() {
   await db.query(`
     CREATE TABLE IF NOT EXISTS market_outcomes (
-      id UUID PRIMARY KEY,
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       market_id UUID NOT NULL REFERENCES markets(id),
       label VARCHAR(200) NOT NULL,
       odds NUMERIC(12, 4) NOT NULL CHECK (odds > 0),
