@@ -37,4 +37,4 @@ async function refreshSportsMarkets() {
 
 startClobWebSocket();
 await refreshSportsMarkets();
-setInterval(refreshSportsMarkets, 60000);
+setInterval(refreshSportsMarkets, 120000);
