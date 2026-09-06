@@ -165,7 +165,7 @@ async function upsertMarket(market, eventId) {
 
     //probability forced between 0 and 1 in case price is somehow outside the range
     const probability = Math.min(Math.max(price, 0), 1);
-    const odds = 1 / probability;
+    const odds = probability > 0 ? 1 / probability : 10000
     //every token becomes a row in market_outcomes
     await db.query(`
       INSERT INTO market_outcomes
