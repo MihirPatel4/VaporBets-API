@@ -47,3 +47,9 @@ export function getSession(cookie) {
 export function signOut(cookie) {
   return authRequest('/auth/sign-out', { cookie, body: {} });
 }
+
+export function verifyEmail({ email, code }) {
+  return authRequest('/auth/verify-email', {
+    body: { email, code },
+  });
+}
