@@ -1,7 +1,7 @@
 import express from 'express';
 import db from '../config/db.js';
 import { requireAuth } from '../authMiddleware.js';
-import { signIn, signOut, signUp, verifyEmail } from '../config/neonAuth.js';
+import { sendVerificationOtp, signIn, signOut, signUp, verifyEmail } from '../config/neonAuth.js';
 
 const router = express.Router();
 
@@ -38,6 +38,10 @@ router.post('/register', async (req, res, next) => {
 				 VALUES ($1, $2, $3, NULL, FALSE, 0)`,
 				[authResult.data.user.id, username.trim(), email.trim().toLowerCase()],
 			);
+		}
+
+		if (!authResult.data?.session) {
+			await sendVerificationOtp({ email: email.trim().toLowerCase() });
 		}
 
 		setAuthCookies(res, authResult.setCookies);
