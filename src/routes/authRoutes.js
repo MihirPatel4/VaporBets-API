@@ -1,7 +1,7 @@
 import express from 'express';
 import db from '../config/db.js';
 import { requireAuth } from '../authMiddleware.js';
-import { signIn, signOut, signUp } from '../config/neonAuth.js';
+import { signIn, signOut, signUp, verifyEmail } from '../config/neonAuth.js';
 
 const router = express.Router();
 
@@ -82,6 +82,34 @@ router.post('/login', async (req, res, next) => {
     //if status is bad request return invalid credentials, otherwise return bad gateway
 		return res.status(error.status === 400 ? 401 : 502).json({
 			error: error.status === 400 ? 'Invalid email or password' : 'Authentication service unavailable',
+		});
+	}
+});
+
+router.post('/verify-email', async (req, res, next) => {
+	const { email, code } = req.body || {};
+
+	if (!isValidEmail(email) || typeof code !== 'string' || !code.trim()) {
+		return res.status(400).json({ error: 'Valid email and verification code are required' });
+	}
+
+	try {
+		const authResult = await verifyEmail({
+			email: email.trim().toLowerCase(),
+			code: code.trim(),
+		});
+
+		setAuthCookies(res, authResult.setCookies);
+
+		return res.json({
+			user: authResult.data?.user || null,
+			session: authResult.data?.session || null,
+		});
+	} 
+	catch (error) {
+		//if error status is not bad request, return bad gateway
+		return res.status(error.status === 400 ? 400 : 502).json({
+			error: error.status === 400 ? 'Invalid or expired verification code' : 'Authentication service unavailable',
 		});
 	}
 });
