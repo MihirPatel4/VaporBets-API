@@ -49,7 +49,13 @@ export function signOut(cookie) {
 }
 
 export function verifyEmail({ email, code }) {
-  return authRequest('/auth/verify-email', {
-    body: { email, code },
+  return authRequest('/email-otp/verify-email', {
+    body: { email, otp: code },
+  });
+}
+
+export function sendVerificationOtp({ email }) {
+  return authRequest('/email-otp/send-verification-otp', {
+    body: { email, type: 'email-verification' },
   });
 }
