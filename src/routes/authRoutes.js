@@ -75,6 +75,13 @@ router.post('/login', async (req, res, next) => {
 			return res.status(403).json({ error: 'Email verification is required' });
 		}
 
+		await db.query(
+			`UPDATE users
+			 SET last_login_at = CURRENT_TIMESTAMP
+			 WHERE id = $1`,
+			[authResult.data.user.id],
+		);
+
 		setAuthCookies(res, authResult.setCookies);
 		return res.json({
 			user: authResult.data.user,
@@ -101,6 +108,13 @@ router.post('/verify-email', async (req, res, next) => {
 			email: email.trim().toLowerCase(),
 			code: code.trim(),
 		});
+
+		await db.query(
+			`UPDATE users
+			 SET email_verified_at = CURRENT_TIMESTAMP
+			 WHERE id = $1 OR email = $2`,
+			[authResult.data?.user?.id || null, email.trim().toLowerCase()],
+		);
 
 		setAuthCookies(res, authResult.setCookies);
 
