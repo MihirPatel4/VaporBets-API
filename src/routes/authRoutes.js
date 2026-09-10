@@ -18,7 +18,6 @@ function setAuthCookies(res, cookies) {
 router.post('/register', async (req, res, next) => {
 	const { email, password, username } = req.body || {};
 
-  //TO-DO: implement validation on frontend as well
 	if (!isValidEmail(email) || typeof password !== 'string' || password.length < 8 ||
 			typeof username !== 'string' || username.trim().length < 3 || username.length > 50) {
 		return res.status(400).json({ error: 'Valid email, username, and password are required' });
@@ -45,6 +44,7 @@ router.post('/register', async (req, res, next) => {
 		}
 
 		setAuthCookies(res, authResult.setCookies);
+		
 		return res.status(201).json({
 			user: authResult.data?.user || null,
 			session: authResult.data?.session || null,
@@ -60,7 +60,6 @@ router.post('/register', async (req, res, next) => {
 router.post('/login', async (req, res, next) => {
 	const { email, password } = req.body || {};
 
-  //TO-DO: also validate on frontend
 	if (!isValidEmail(email) || typeof password !== 'string') {
 		return res.status(400).json({ error: 'Email and password are required' });
 	}
