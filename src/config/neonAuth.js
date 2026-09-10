@@ -1,4 +1,5 @@
 const neonAuthUrl = process.env.NEON_AUTH_URL;
+const neonAuthOrigin = process.env.NEON_AUTH_ORIGIN || 'http://localhost:3001';
 
 if (!neonAuthUrl) {
   throw new Error('NEON_AUTH_URL is required');
@@ -11,6 +12,7 @@ async function authRequest(path, { body, cookie } = {}) {
     headers: {
       ...(body ? { 'content-type': 'application/json' } : {}),
       ...(cookie ? { cookie } : {}),
+      origin: neonAuthOrigin,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -29,23 +31,23 @@ async function authRequest(path, { body, cookie } = {}) {
 }
 
 export function signUp({ email, password, username }) {
-  return authRequest('/auth/sign-up/email', {
+  return authRequest('/sign-up/email', {
     body: { email, password, name: username },
   });
 }
 
 export function signIn({ email, password }) {
-  return authRequest('/auth/sign-in/email', {
+  return authRequest('/sign-in/email', {
     body: { email, password },
   });
 }
 
 export function getSession(cookie) {
-  return authRequest('/auth/get-session', { cookie });
+  return authRequest('/get-session', { cookie });
 }
 
 export function signOut(cookie) {
-  return authRequest('/auth/sign-out', { cookie, body: {} });
+  return authRequest('/sign-out', { cookie, body: {} });
 }
 
 export function verifyEmail({ email, code }) {
