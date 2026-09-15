@@ -19,4 +19,24 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT id, title, description, slug, game_id, start_time, status
+      FROM events
+      WHERE id = $1
+      `, [req.params.id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    return res.json({ event: rows[0] });
+  }
+
+  catch (error) {
+    return next(error);
+  }
+});
+
 export default router;
