@@ -10,6 +10,7 @@ export async function up() {
       slug VARCHAR(300),
       condition_id VARCHAR(100),
       type market_type NOT NULL,
+      sports_market_type VARCHAR(30),
       status market_status NOT NULL DEFAULT 'OPEN',
       closes_at TIMESTAMP,
       source_updated_at TIMESTAMP,
