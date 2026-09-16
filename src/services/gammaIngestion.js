@@ -1,7 +1,7 @@
 import db from '../config/db.js';
 
 const GAMMA_API_URL = process.env.GAMMA_API_URL || 'https://gamma-api.polymarket.com';
-const SPORTS_TAG_ID = process.env.POLYMARKET_SPORTS_TAG_ID || '1';
+const WNBA_TAG_ID = process.env.POLYMARKET_WNBA_TAG_ID || '100254';
 const PAGE_SIZE = 100;
 
 //prevent invalid Date objects
@@ -41,7 +41,7 @@ async function fetchSportsEvents() {
   //loop for keyset pagination
   do {
     const params = new URLSearchParams({
-      tag_id: SPORTS_TAG_ID,
+      tag_id: WNBA_TAG_ID,
       closed: 'false',
       limit: String(PAGE_SIZE),
     });
@@ -131,13 +131,15 @@ async function upsertMarket(market, eventId) {
 
   const result = await db.query(`
     INSERT INTO markets
-      (polymarket_id, event_id, question, slug, condition_id, type, status, closes_at, source_updated_at, updated_at)
-    VALUES ($1, $2, $3, $4, $5, 'SINGLE', $6, $7, $8, CURRENT_TIMESTAMP)
+      (polymarket_id, event_id, question, slug, condition_id, type, sports_market_type, status, closes_at, source_updated_at, updated_at)
+    VALUES ($1, $2, $3, $4, $5, 'SINGLE', $6, $7, $8, $9, CURRENT_TIMESTAMP)
     ON CONFLICT (polymarket_id) DO UPDATE SET
       event_id = EXCLUDED.event_id, 
       question = EXCLUDED.question,
       slug = EXCLUDED.slug, 
       condition_id = EXCLUDED.condition_id,
+      type = EXCLUDED.type,
+      sports_market_type = EXCLUDED.sports_market_type,
       status = EXCLUDED.status, 
       closes_at = EXCLUDED.closes_at,
       source_updated_at = EXCLUDED.source_updated_at, 
@@ -149,6 +151,7 @@ async function upsertMarket(market, eventId) {
     market.question || market.slug || `Market ${market.id}`,
     market.slug || null, 
     market.conditionId || null, 
+    market.sportsMarketType || null,
     marketStatus(market),
     asDate(market.endDate || market.endDateIso), 
     asDate(market.updatedAt),
