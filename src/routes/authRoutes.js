@@ -30,13 +30,33 @@ router.post('/register', async (req, res, next) => {
 			username: username.trim(),
 		});
 
-	//check if a user was returned before inserting into db
+		//check if a user was returned before inserting into db
 		if (authResult.data?.user) {
-			await db.query(
-				`INSERT INTO users (id, username, email, password_hash, is_premium, current_login_streak)
-				 VALUES ($1, $2, $3, NULL, FALSE, 0)`,
-				[authResult.data.user.id, username.trim(), email.trim().toLowerCase()],
-			);
+			const client = await db.connect();
+			try {
+				await client.query('BEGIN');
+
+				await client.query(
+					`INSERT INTO users (id, username, email, password_hash, is_premium, current_login_streak)
+					 VALUES ($1, $2, $3, NULL, FALSE, 0)`,
+					[authResult.data.user.id, username.trim(), email.trim().toLowerCase()],
+				);
+
+				await client.query(
+					`INSERT INTO vaporcredits_wallets (id, user_id)
+					 VALUES (gen_random_uuid(), $1)`,
+					[authResult.data.user.id],
+				);
+
+				await client.query('COMMIT');
+			}
+			catch (error) {
+				await client.query('ROLLBACK');
+				throw error;
+			}
+			finally {
+				client.release();
+			}
 		}
 
 		if (!authResult.data?.session) {
@@ -146,8 +166,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
 	try {
     //parameter value ensures user ID is not inserted directly into SQL
 		const { rows } = await db.query(
-			`SELECT id, username, email, is_premium, current_login_streak,
-							created_at, last_login_at, total_points
+			`SELECT id, username, email, is_premium, current_login_streak, created_at, last_login_at, total_points
 			 FROM users WHERE id = $1`,
 			[req.user.id],
 		);
