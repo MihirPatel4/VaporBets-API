@@ -2,7 +2,7 @@ import db from '../config/db.js';
 
 export async function up() {
   await db.query(`
-    CREATE TABLE IF NOT EXISTS vapor_credits_wallets (
+    CREATE TABLE IF NOT EXISTS vaporcredits_wallets (
       id UUID PRIMARY KEY,
       user_id UUID NOT NULL UNIQUE REFERENCES users(id),
       balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0),
