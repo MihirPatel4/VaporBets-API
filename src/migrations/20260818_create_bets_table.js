@@ -7,7 +7,7 @@ export async function up() {
       user_id UUID NOT NULL REFERENCES users(id),
       amount_wagered INTEGER NOT NULL CHECK (amount_wagered > 0),
       combined_odds NUMERIC(12, 4) NOT NULL CHECK (combined_odds > 0),
-      potential_payout INTEGER NOT NULL NOT NULL CHECK (potential_payout >= 0),
+      potential_payout INTEGER NOT NULL CHECK (potential_payout >= 0),
       status bet_status NOT NULL DEFAULT 'PENDING',
       placed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       settled_at TIMESTAMP
