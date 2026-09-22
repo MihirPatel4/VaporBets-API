@@ -1,5 +1,6 @@
 import express from 'express';
 import authRoutes from './routes/authRoutes.js';
+import betRoutes from './routes/betRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import { syncSportsMarkets } from './services/gammaIngestion.js';
 import { startClobWebSocket, updateClobSubscription } from './services/clobWebSocket.js';
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '10kb' }));
 app.use('/auth', authRoutes);
+app.use('/bets', betRoutes);
 app.use('/events', eventRoutes);
 
 app.get('/', (req, res) => {
