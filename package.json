@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node --env-file=.env --watch src/server.js",
     "migrate": "node --env-file=.env src/migrate.js",
-    "grant-weekly-credits": "node src/grantWeeklyCredits.js"
+    "grant-weekly-credits": "node --env-file=.env src/grantWeeklyCredits.js"
   },
   "dependencies": {
     "express": "^5.2.1",
