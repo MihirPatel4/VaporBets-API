@@ -47,8 +47,8 @@ export async function register(req, res, next) {
 				);
 
 				await client.query(
-					`INSERT INTO ledger_entries (id, user_id, currency, amount, reason)
-					 VALUES (gen_random_uuid(), $1, 'VAPORCREDITS', $2, 'INITIAL_ALLOWANCE')`,
+					`INSERT INTO ledger_entries (id, user_id, amount, reason)
+					 VALUES (gen_random_uuid(), $1, $2, 'INITIAL_ALLOWANCE')`,
 					[authResult.data.user.id, INITIAL_VAPORCREDITS],
 				);
 

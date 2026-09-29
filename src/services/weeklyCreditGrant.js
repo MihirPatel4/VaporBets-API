@@ -32,10 +32,10 @@ export async function grantWeeklyCredits(weekStart) {
 
     const { rows } = await client.query(`
       WITH new_grants AS (
-        INSERT INTO ledger_entries (id, user_id, currency, amount, reason, grant_week)
-        SELECT gen_random_uuid(), user_id, 'VAPORCREDITS', $2, 'WEEKLY_ALLOWANCE', $1::date
+        INSERT INTO ledger_entries (id, user_id, amount, reason, grant_week)
+        SELECT gen_random_uuid(), user_id, $2, 'WEEKLY_ALLOWANCE', $1::date
         FROM vaporcredits_wallets
-        ON CONFLICT (user_id, currency, grant_week) WHERE grant_week IS NOT NULL
+        ON CONFLICT (user_id, grant_week) WHERE grant_week IS NOT NULL
         DO NOTHING
         RETURNING user_id, amount
       )

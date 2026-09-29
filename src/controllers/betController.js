@@ -174,8 +174,8 @@ export async function placeBet(req, res, next) {
 		}
 
 		await client.query(`
-			INSERT INTO ledger_entries (id, user_id, currency, amount, reason, related_bet_id)
-			VALUES (gen_random_uuid(), $1, 'VAPORCREDITS', $2, 'BET_PLACED', $3)
+			INSERT INTO ledger_entries (id, user_id, amount, reason, related_bet_id)
+			VALUES (gen_random_uuid(), $1, $2, 'BET_PLACED', $3)
 		`, [req.user.id, -amountWagered, bet.id]);
 
 		//+1 point per 100 VC wagered
