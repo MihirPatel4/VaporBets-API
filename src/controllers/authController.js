@@ -110,9 +110,12 @@ export async function login(req, res) {
 	}
 	catch (error) {
 		//if status is bad request return invalid credentials, otherwise return bad gateway
-		return res.status(error.status === 400 ? 401 : 502).json({
-			error: error.status === 400 ? 'Invalid email or password' : 'Authentication service unavailable',
-		});
+		if (error.status === 400) {
+			return res.status(401).json({error: 'Invalid email or password'});
+		}
+		else {
+			return res.status(502).json({error: 'Authentication service unavailable'});
+		}
 	}
 }
 
