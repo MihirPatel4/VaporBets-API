@@ -34,8 +34,8 @@ export async function register(req, res, next) {
 				await client.query('BEGIN');
 
 				await client.query(
-					`INSERT INTO users (id, username, email, password_hash, is_premium, current_login_streak)
-					 VALUES ($1, $2, $3, NULL, FALSE, 0)`,
+					`INSERT INTO users (id, username, email, is_premium, current_login_streak)
+					 VALUES ($1, $2, $3, FALSE, 0)`,
 					[authResult.data.user.id, username.trim(), email.trim().toLowerCase()],
 				);
 
@@ -88,10 +88,7 @@ export async function login(req, res) {
 	}
 
 	try {
-		const authResult = await signIn({
-			email: email.trim().toLowerCase(),
-			password,
-		});
+		const authResult = await signIn({ email: email.trim().toLowerCase(), password });
 
 		//blocks unverified users
 		if (!authResult.data?.user?.emailVerified) {
