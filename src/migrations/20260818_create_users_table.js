@@ -6,7 +6,6 @@ export async function up() {
         id UUID PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         email VARCHAR(100) NOT NULL,
-        password_hash VARCHAR(255),
         is_premium BOOLEAN DEFAULT FALSE,
         current_login_streak INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
