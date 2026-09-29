@@ -146,10 +146,13 @@ export async function verifyEmailAddress(req, res) {
 		});
 	}
 	catch (error) {
-		//if error status is not bad request, return bad gateway
-		return res.status(error.status === 400 ? 400 : 502).json({
-			error: error.status === 400 ? 'Invalid or expired verification code' : 'Authentication service unavailable',
-		});
+		//if status is bad request return invalid credentials, otherwise return bad gateway
+		if (error.status === 400) {
+			return res.status(401).json({error: 'Invalid email or password'});
+		}
+		else {
+			return res.status(502).json({error: 'Authentication service unavailable'});
+		}
 	}
 }
 
