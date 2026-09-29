@@ -22,14 +22,7 @@ export async function grantWeeklyCredits(weekStart) {
   try {
     await client.query('BEGIN');
 
-    //create new wallet if one does not exist
-    await client.query(`
-      INSERT INTO vaporcredits_wallets (id, user_id, balance)
-      SELECT gen_random_uuid(), id, 0
-      FROM users
-      ON CONFLICT (user_id) DO NOTHING
-    `);
-
+    //grant to all users in vaporcredits_wallets table
     const { rows } = await client.query(`
       WITH new_grants AS (
         INSERT INTO ledger_entries (id, user_id, amount, reason, grant_week)
