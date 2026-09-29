@@ -1,0 +1,2 @@
+export const INITIAL_VAPORCREDITS = 10000;
+export const WEEKLY_VAPORCREDITS = 10000;
