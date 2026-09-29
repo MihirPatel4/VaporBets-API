@@ -1,10 +1,6 @@
 const neonAuthUrl = process.env.NEON_AUTH_URL;
 const neonAuthOrigin = process.env.NEON_AUTH_ORIGIN || 'http://localhost:3001';
 
-if (!neonAuthUrl) {
-  throw new Error('NEON_AUTH_URL is required');
-}
-
 async function authRequest(path, { body, cookie } = {}) {
   const response = await fetch(`${neonAuthUrl}${path}`, {
     //only a POST request if user info is provided
