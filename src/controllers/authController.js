@@ -15,7 +15,7 @@ function setAuthCookies(res, cookies) {
 export async function register(req, res, next) {
 	const { email, password, username } = req.body || {};
 
-	if (!isValidEmail(email) || typeof password !== 'string' || password.length < 8 ||
+	if (!isValidEmail(email) || password.length < 8 ||
 			typeof username !== 'string' || username.trim().length < 3 || username.length > 50) {
 		return res.status(400).json({ error: 'Valid email, username, and password are required' });
 	}
@@ -83,7 +83,7 @@ export async function register(req, res, next) {
 export async function login(req, res) {
 	const { email, password } = req.body || {};
 
-	if (!isValidEmail(email) || typeof password !== 'string') {
+	if (!isValidEmail(email) || !password) {
 		return res.status(400).json({ error: 'Email and password are required' });
 	}
 
@@ -119,7 +119,7 @@ export async function login(req, res) {
 export async function verifyEmailAddress(req, res) {
 	const { email, code } = req.body || {};
 
-	if (!isValidEmail(email) || typeof code !== 'string' || !code.trim()) {
+	if (!isValidEmail(email) || !code) {
 		return res.status(400).json({ error: 'Valid email and verification code are required' });
 	}
 
@@ -196,7 +196,7 @@ export async function getLocation(req, res, next) {
 export async function updateLocation(req, res, next) {
 	const { country, region, consentGiven } = req.body || {};
 
-	if (typeof country !== 'string' || typeof region !== 'string' || typeof consentGiven !== 'boolean') {
+	if (!country || !region || !consentGiven) {
 		return res.status(400).json({ error: 'Country, region, and consentGiven are required' });
 	}
 
