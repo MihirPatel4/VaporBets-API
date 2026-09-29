@@ -9,8 +9,16 @@ export async function up() {
       amount INTEGER NOT NULL CHECK (amount <> 0),
       reason VARCHAR(50) NOT NULL,
       related_bet_id UUID REFERENCES bets(id),
+      grant_week DATE,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  //unique index prevents duplicate grants
+  await db.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS ledger_entries_weekly_grant_unique
+    ON ledger_entries (user_id, currency, grant_week)
+    WHERE grant_week IS NOT NULL
   `);
 }
 
