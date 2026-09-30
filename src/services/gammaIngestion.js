@@ -1,15 +1,13 @@
 import db from '../config/db.js';
 
-const GAMMA_API_URL = process.env.GAMMA_API_URL || 'https://gamma-api.polymarket.com';
+const GAMMA_API_URL = process.env.GAMMA_API_URL;
 const WNBA_TAG_ID = process.env.POLYMARKET_WNBA_TAG_ID || '100254';
-const PAGE_SIZE = 100;
 
 //prevent invalid Date objects
 function asDate(value) {
   if (!value) {
     return null;
   }
-  
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
@@ -43,7 +41,7 @@ async function fetchSportsEvents() {
     const params = new URLSearchParams({
       tag_id: WNBA_TAG_ID,
       closed: 'false',
-      limit: String(PAGE_SIZE),
+      limit: '100',
     });
 
     //adds next page to params
@@ -114,7 +112,7 @@ async function upsertEvent(event, categoryId) {
     event.description || null, 
     event.slug || null, 
     event.gameId,
-    asDate(event.startTime || event.gameStartTime || event.startDate), 
+    asDate(event.startTime) || asDate(event.gameStartTime) || asDate(event.startDate), 
     eventStatus(event),
     asDate(event.updatedAt),
   ]);
@@ -153,7 +151,7 @@ async function upsertMarket(market, eventId) {
     market.conditionId || null, 
     market.sportsMarketType || null,
     marketStatus(market),
-    asDate(market.endDate || market.endDateIso), 
+    asDate(market.endDate) || asDate(market.endDateIso), 
     asDate(market.updatedAt),
   ]);
 
