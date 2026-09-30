@@ -15,8 +15,7 @@ function setAuthCookies(res, cookies) {
 export async function register(req, res, next) {
 	const { email, password, username } = req.body || {};
 
-	if (!isValidEmail(email) || password.length < 8 ||
-			typeof username !== 'string' || username.trim().length < 3 || username.length > 50) {
+	if (!isValidEmail(email) || password.length < 8 || username.trim().length < 3 || username.length > 50) {
 		return res.status(400).json({ error: 'Valid email, username, and password are required' });
 	}
 
