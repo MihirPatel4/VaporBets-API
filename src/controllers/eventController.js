@@ -3,7 +3,7 @@ import db from '../config/db.js';
 export async function getEvents(req, res, next) {
 	try {
 		const { rows } = await db.query(`
-			SELECT e.id, e.title, COALESCE(
+			SELECT e.id, e.title, e.start_time, e.status, COALESCE(
 				json_agg(
 					json_build_object(
 						'id', m.id,
