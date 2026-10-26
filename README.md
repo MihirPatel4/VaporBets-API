@@ -4,7 +4,7 @@ VaporBets is a mobile app for simulated sports-betting using the virtual currenc
 
 ## Market data
 
-The app imports active Polymarket sports events using Gamma API every 120 seconds. Their markets and outcome token IDs are stored as the Polymarket baseline. User bets on this app will affect the final prices and market odds.
+The app imports active Polymarket sports events using Gamma API every 120 seconds. Their markets and outcome token IDs are stored as the Polymarket baseline. The VaporBets server initially fetches events that aren't closed, and checks to update an event's status until the event and its markets are closed. User bets on this app will affect the final prices and market odds.
 The CLOB WebSocket from Polymarket updates best bid, best ask, last trade price, probability, and displayed odds in real time.
 
 ## Vaporcredits allowance
