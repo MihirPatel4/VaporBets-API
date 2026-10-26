@@ -2,6 +2,7 @@ import db from '../config/db.js';
 
 const GAMMA_API_URL = process.env.GAMMA_API_URL;
 const WNBA_TAG_ID = process.env.POLYMARKET_WNBA_TAG_ID || '100254';
+const EVENT_RECONCILIATION_BATCH_SIZE = 5;
 
 //prevent invalid Date objects
 function asDate(value) {
@@ -13,7 +14,7 @@ function asDate(value) {
 }
 
 //sets event status to one of the enum types
-function eventStatus(event) {
+function getEventStatus(event) {
   if (event.closed || event.archived) {
     return 'COMPLETED';
   }
@@ -26,9 +27,11 @@ function eventStatus(event) {
 }
 
 //sets market status to one of the enum types
-function marketStatus(market) {
-  if (market.closed) return 'CLOSED';
-  return market.active === false ? 'CLOSED' : 'OPEN';
+function getMarketStatus(market, isCompleted = false) {
+  if (isCompleted || market.closed || market.active === false) {
+    return 'CLOSED';
+  }
+  return 'OPEN';
 }
 
 //get sports events from Gamma
@@ -66,6 +69,14 @@ async function fetchSportsEvents() {
   return events.filter((event) => event.gameId != null);
 }
 
+async function fetchEventById(eventId) {
+  const response = await fetch(`${GAMMA_API_URL}/events/${encodeURIComponent(eventId)}`);
+  if (!response.ok) {
+    throw new Error(`Gamma event request failed with ${response.status} for ${eventId}`);
+  }
+  return response.json();
+}
+
 //add the sports category to db if one doesn't exist
 async function ensureSportsCategory() {
   const existing = await db.query(
@@ -91,8 +102,7 @@ async function ensureSportsCategory() {
 //insert or update event pulled from Gamma
 async function upsertEvent(event, categoryId) {
   const result = await db.query(`
-    INSERT INTO events
-      (polymarket_id, category_id, title, description, slug, game_id, start_time, status, source_updated_at, updated_at)
+    INSERT INTO events (polymarket_id, category_id, title, description, slug, game_id, start_time, status, source_updated_at, updated_at)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
     ON CONFLICT (polymarket_id) DO UPDATE SET
       category_id = EXCLUDED.category_id, 
@@ -113,7 +123,7 @@ async function upsertEvent(event, categoryId) {
     event.slug || null, 
     event.gameId,
     asDate(event.startTime) || asDate(event.gameStartTime) || asDate(event.startDate), 
-    eventStatus(event),
+    getEventStatus(event),
     asDate(event.updatedAt),
   ]);
   //return the db event ID for use in syncSportsMarkets
@@ -121,7 +131,7 @@ async function upsertEvent(event, categoryId) {
 }
 
 //insert or update market pulled from Gamma
-async function upsertMarket(market, eventId) {
+async function upsertMarket(market, eventId, isCompleted = false) {
   const tokenIds = JSON.parse(market.clobTokenIds);
   const labels = JSON.parse(market.outcomes);
   const prices = JSON.parse(market.outcomePrices);
@@ -150,7 +160,7 @@ async function upsertMarket(market, eventId) {
     market.slug || null, 
     market.conditionId || null, 
     market.sportsMarketType || null,
-    marketStatus(market),
+    getMarketStatus(market, isCompleted),
     asDate(market.endDate) || asDate(market.endDateIso), 
     asDate(market.updatedAt),
   ]);
@@ -195,19 +205,56 @@ async function upsertMarket(market, eventId) {
   return outcomeRows;
 }
 
+async function syncEvent(event, categoryId) {
+  const eventId = await upsertEvent(event, categoryId);
+  const isCompleted = getEventStatus(event) === 'COMPLETED';
+  const tokenIds = [];
+
+  for (const market of event.markets || []) {
+    const marketTokenIds = await upsertMarket(market, eventId, isCompleted);
+    if (!isCompleted) {
+      tokenIds.push(...marketTokenIds);
+    }
+  }
+
+  return tokenIds;
+}
+
 //syncs events in the db with those on Polymarket
 export async function syncSportsMarkets() {
   const categoryId = await ensureSportsCategory();
   const events = await fetchSportsEvents();
   const tokenIds = [];
+  const fetchedEventIds = new Set(events.map((event) => String(event.id)));
+
   for (const event of events) {
-    const eventId = await upsertEvent(event, categoryId);
-    //empty array as fallback
-    for (const market of event.markets || []) {
-      tokenIds.push(...await upsertMarket(market, eventId));
+    tokenIds.push(...await syncEvent(event, categoryId));
+  }
+
+  const { rows: storedEvents } = await db.query(`
+    SELECT polymarket_id
+    FROM events
+    WHERE category_id = $1 AND status <> 'COMPLETED'
+  `, [categoryId]);
+
+  //get the events from the database that are not completed but marked closed on Gamma
+  const eventsToReconcile = storedEvents.filter(
+    (event) => !fetchedEventIds.has(String(event.polymarket_id)),
+  );
+
+  //sync all the events to reconcile in concurrent batches
+  for (let index = 0; index < eventsToReconcile.length; index += EVENT_RECONCILIATION_BATCH_SIZE) {
+    const batch = eventsToReconcile.slice(index, index + EVENT_RECONCILIATION_BATCH_SIZE);
+    const reconciledEvents = await Promise.all(
+      batch.map((event) => fetchEventById(event.polymarket_id)),
+    );
+
+    for (const event of reconciledEvents) {
+      tokenIds.push(...await syncEvent(event, categoryId));
     }
   }
+
   //Set removes duplicate IDs
-  //return token IDs for use in refreshing every minute
+  //return token IDs for use in refreshing
   return [...new Set(tokenIds)];
 }
