@@ -149,16 +149,32 @@ async function handleMessage(message) {
 }
 
 export function updateClobSubscription(tokenIds) {
-  //removes duplicates from new list of token IDs
-  subscribedTokenIds = [...new Set(tokenIds)];
+  const nextTokenIds = [...new Set(tokenIds)];
+  const nextSet = new Set(nextTokenIds);
 
-  //if connection is not open or token ID list is empty, leave the function
-  if (socket?.readyState !== WebSocket.OPEN || !subscribedTokenIds.length) {
+  const removedTokenIds = subscribedTokenIds.filter(id => !nextSet.has(id));
+  const previousSet = new Set(subscribedTokenIds);
+  const addedTokenIds = nextTokenIds.filter(id => !previousSet.has(id));
+
+  subscribedTokenIds = nextTokenIds;
+
+  if (socket?.readyState !== WebSocket.OPEN) {
     return;
   }
 
-  //request subscriptions for tokens
-  socket.send(JSON.stringify({ assets_ids: subscribedTokenIds, operation: 'subscribe' }));
+  if (removedTokenIds.length > 0) {
+    socket.send(JSON.stringify({
+      assets_ids: removedTokenIds,
+      operation: 'unsubscribe',
+    }));
+  }
+
+  if (addedTokenIds.length > 0) {
+    socket.send(JSON.stringify({
+      assets_ids: addedTokenIds,
+      operation: 'subscribe',
+    }));
+  }
 }
 
 //create connection to CLOB websocket
@@ -205,7 +221,7 @@ export function startClobWebSocket() {
       reconnectTimer = setTimeout(connect, 5000);
     });
     
-    socket.on('error', (error) => console.error('CLOB WebSocket error:', error.message));
+    socket.on('error', error => console.error('CLOB WebSocket error:', error.message));
   };
   connect();
 }
