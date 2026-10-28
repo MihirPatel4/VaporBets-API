@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import db from '../config/db.js';
+import { publishProbabilityUpdate } from './liveUpdates.js';
 
 const CLOB_WS_URL = process.env.POLYMARKET_CLOB_WS_URL || 'wss://ws-subscriptions-clob.polymarket.com/ws/market';
 let socket;
@@ -38,26 +39,44 @@ async function updatePrice(tokenId, fields) {
 async function updateQuote(tokenId, { bestBid, bestAsk }) {
   //probability = (best bid + best ask) / 2
   //odds = 2 / (best bid + best ask)
-  await db.query(`
-    UPDATE market_outcomes
-    SET best_bid = COALESCE($1, best_bid),
-        best_ask = COALESCE($2, best_ask),
-        probability = CASE
-          WHEN COALESCE($1, best_bid) IS NOT NULL
-            AND COALESCE($2, best_ask) IS NOT NULL
-          THEN (COALESCE($1, best_bid) + COALESCE($2, best_ask)) / 2
-          ELSE probability
-        END,
-        odds = CASE
-          WHEN COALESCE($1, best_bid) IS NOT NULL
-            AND COALESCE($2, best_ask) IS NOT NULL
-            AND (COALESCE($1, best_bid) + COALESCE($2, best_ask)) > 0
-          THEN 2 / (COALESCE($1, best_bid) + COALESCE($2, best_ask))
-          ELSE odds
-        END,
-        price_updated_at = CURRENT_TIMESTAMP
-    WHERE polymarket_token_id = $3
+  const { rows } = await db.query(`
+    WITH previous AS MATERIALIZED (
+      SELECT id, market_id, probability
+      FROM market_outcomes
+      WHERE polymarket_token_id = $3
+      FOR UPDATE
+    ), updated AS (
+      UPDATE market_outcomes outcome
+      SET best_bid = COALESCE($1, outcome.best_bid),
+          best_ask = COALESCE($2, outcome.best_ask),
+          probability = CASE
+            WHEN COALESCE($1, outcome.best_bid) IS NOT NULL
+              AND COALESCE($2, outcome.best_ask) IS NOT NULL
+            THEN (COALESCE($1, outcome.best_bid) + COALESCE($2, outcome.best_ask)) / 2
+            ELSE outcome.probability
+          END,
+          odds = CASE
+            WHEN COALESCE($1, outcome.best_bid) IS NOT NULL
+              AND COALESCE($2, outcome.best_ask) IS NOT NULL
+              AND (COALESCE($1, outcome.best_bid) + COALESCE($2, outcome.best_ask)) > 0
+            THEN 2 / (COALESCE($1, outcome.best_bid) + COALESCE($2, outcome.best_ask))
+            ELSE outcome.odds
+          END,
+          price_updated_at = CURRENT_TIMESTAMP
+      FROM previous
+      WHERE outcome.id = previous.id
+      RETURNING outcome.id AS outcome_id, outcome.market_id, outcome.probability
+    )
+    SELECT updated.outcome_id, updated.market_id, markets.event_id, updated.probability
+    FROM updated
+    JOIN previous ON previous.id = updated.outcome_id
+    JOIN markets ON markets.id = updated.market_id
+    WHERE updated.probability IS DISTINCT FROM previous.probability
   `, [bestBid, bestAsk, tokenId]);
+
+  for (const update of rows) {
+    publishProbabilityUpdate(update);
+  }
 }
 
 //handle each incoming CLOB websocket message
